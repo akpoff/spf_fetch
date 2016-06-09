@@ -53,6 +53,12 @@ Each domain from the list and all domains discovered as `include`
 domains in the SPF records will be listed with their relevant IPs and
 IP-blocks.
 
+Where To Get A Good List of Domains
+-----------------------------------
+To get a good list of domains, see the github mailcheck (https://github.com/mailcheck/mailcheck/wiki/List-of-Popular-Domains)
+
+See file `common_domains` for a properly formatted version of the file.
+
 Use with PF
 -----------
 
