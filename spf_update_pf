@@ -1,0 +1,70 @@
+#!/bin/sh
+
+#
+# Copyright (c) 2016 Aaron Poffenberger <akp@hypernote.com>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#
+
+usage() {
+  echo "Updates a pf(4) table called \"common_white\" with"
+  echo "the list of ipv4 addresses for the domains listed"
+  echo "in /etc/mail/common_domains by calling spf_fetch."
+  echo
+  echo "A good list can be found at:"
+  echo "https://github.com/mailcheck/mailcheck/wiki/List-of-Popular-Domains"
+
+  exit 1
+}
+
+if [ ${1:-empty} = '-h' ]
+then
+  echo usage: ${0} [file] [table]
+  echo
+  usage
+fi
+
+if [ "${1:-empty}" = 'empty' ]
+then
+  file="/etc/mail/common_domains"
+else
+  file="${1}"
+fi
+
+if [ "${2:-empty}" = 'empty' ]
+then
+  table="common_white"
+else
+  table="${2}"
+fi
+
+has_table=$(pfctl -s Tables | grep "${table}")
+
+if [[ "${file:-empty}" != 'empty' && -f "${file}" && "${has_table:-empty}" != 'empty' ]]
+then
+  output="/etc/mail/common_domains_white"
+  rm -f "${output}"
+
+  spf_fetch "${file}" >> "${output}"
+
+  pfctl -t "${table}" -T replace -f "${output}"
+elif [ "${has_table:-empty}" = 'empty' ]
+then
+  echo Table not found: ${table}
+
+  exit 2
+else
+  echo File not found: ${file}
+
+  exit 1
+fi

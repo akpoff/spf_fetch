@@ -1,0 +1,79 @@
+#!/bin/sh
+
+#
+# Copyright (c) 2016 Aaron Poffenberger <akp@hypernote.com>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#
+
+usage() {
+  echo "You must specify a file with a list of domain, one domain per line."
+  echo "A good list can be found at:"
+  echo "https://github.com/mailcheck/mailcheck/wiki/List-of-Popular-Domains"
+
+  exit 1
+}
+
+if [[ ${1:-empty} = '-h' || ${1:-empty} = empty ]]
+then
+  echo usage: ${0} file
+  echo
+  echo "Recursively looks up all the SPF records for the all the domains"
+  echo "listed in the file and emits the results to stdin."
+  echo
+  usage
+fi
+
+file="${1}"
+
+if [[ ! -e ${file} || ${file:-empty} = "empty" ]]
+then
+  usage
+fi
+
+# http://blog.markhatton.co.uk/2011/03/15/regular-expressions-for-ip-addresses-cidr-ranges-and-hostnames/
+reg_ip='^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$'
+reg_cidr='^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$'
+
+get_ips() {
+  echo "#IPs for ${1}..."
+  domain="${1}"
+  spfs=$(dig "${domain}" txt 8.8.8.8 | grep -i spf)
+  ips=$(echo $spfs | tr ' ' '\n' | grep ip4 | cut -d ':' -f 2)
+
+  for i in $(echo ${ips} | tr ' ' '\n')
+  do
+    ip=$(echo $i | egrep "$reg_ip")
+    if [ ${ip:-empty} != 'empty' ]
+    then
+      echo $ip
+    else
+      ip_cidr=$(echo $i | egrep "$reg_cidr")
+      if [ ${ip_cidr:-empty} != empty ]
+      then
+        echo $ip_cidr
+      fi
+    fi
+  done
+
+  domains=$(echo $spfs | tr ' ' '\n' | grep include | cut -d ':' -f 2)
+  for i in $domains;
+  do
+    get_ips $i;
+  done
+}
+
+for i in $(cat "${file}" | grep -v '#' | cut -d ' ' -f 1)
+do
+  get_ips "${i}"
+done
