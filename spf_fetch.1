@@ -1,0 +1,129 @@
+.\" Copyright (c) 2016 Aaron Poffenberger <akp@hypernote.com>
+.\"
+.\" Permission to use, copy, modify, and distribute this software for any
+.\" purpose with or without fee is hereby granted, provided that the above
+.\" copyright notice and this permission notice appear in all copies.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+.\" WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+.\" MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+.\" ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+.\" WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+.\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+.\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.Dd $Mdocdate: Jul 10 2016 $
+.Dt SPF_FETCH 1
+.Os
+.Sh NAME
+.Nm spf_fetch
+.Nd recursively looks up all the SPF records for the all the domains
+.Sh SYNOPSIS
+.Nm spf_fetch
+.Bk -words
+.Op Fl 46cdfhmtv
+.Op Fl 4
+.Op Fl 6
+.Op Fl c
+.Op Fl d Ar dns_server
+.Op Fl f Ar file
+.Op Fl h
+.Op Fl m
+.Op Fl t Ar filter
+.Op Fl v
+.Op domain(s)
+.Ek
+.Sh DESCRIPTION
+.Nm
+recursively looks up all the SPF records for the the domains
+listed in the file, on the command line and or received on
+stdin. Emits the results to stdout.
+.Pp
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl 4
+Look-up IPv4 records. Default is both IPv4 and IPv6.
+.It Fl 6
+Look-up IPv6 records. Default is both IPv4 and IPv6.
+.It Fl c
+Print domain as shell comment on single line before
+look-up results.
+.It Fl d
+DNS server to use for look-ups.
+.It Fl f
+File with domains to lookup.
+.It Fl h
+Help message.
+.It Fl m
+Do not print MX records if server has no SPF records.
+.It Fl t
+Filter to apply to ip addresses. May be used to validate,
+transform or exclude addresses.
+.It Fl v
+Print the version.
+.Sh FILES
+.Bl -tag -width "file" -compact
+.It Pa file
+Formatted with one domain per line. Comments begin with hash (#).
+.Pp
+.Lk https://github.com/mailcheck/mailcheck/wiki/List-of-Popular-Domains "List of Popular Domains"
+.Sh FILTERS
+Filters are called once for each ip address found and
+may validate, transform or filter ip addresses.
+.Pp
+Filters must return empty string or one valid address or CIDR address
+per line.
+.Sh EXAMPLES
+Look-up a single domain:
+.Pp
+.Bd -literal
+	spf_fetch example.com
+.Ed
+.Pp
+Look-up a domain from a file:
+.Pp
+.Bd -literal
+	cat domains
+		example.com
+		example.net
+	
+	spf_fetch domains
+.Ed
+.Pp
+Look-up IPv4 SPF records for a single domain:
+.Pp
+.Bd -literal
+	spf_fetch -4 example.com
+.Ed
+.Pp
+Look-up records for a single domain with filter:
+.Pp
+.Bd -literal
+	cat filters/filter_sipcalc
+		#!/bin/sh
+
+		ip="$1"
+
+		is_err=$(sipcalc "$ip" | grep -i ERR)
+
+		if [ -z "$is_err" ] ; then
+			echo "$ip"
+		fi
+
+	spf_fetch -t filters/filter_sipcalc example.com
+.Ed
+.Sh DIAGNOSTICS
+.Nm
+utility always exits 0.
+.Sh SEE ALSO
+.Xr dig 1
+.Sh AUTHORS
+.An -nosplit
+The
+.Nm
+utility was written by
+.An Aaron Poffenberger Aq Mt akp@hypernote.com .
+.Sh BUGS
+.Nm
+should return error codes for conditions like failed look-ups.

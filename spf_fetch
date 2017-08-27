@@ -16,64 +16,232 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 
-usage() {
-	echo "You must specify a file with a list of domain, one domain per line."
-	echo "A good list can be found at:"
-	echo "https://github.com/mailcheck/mailcheck/wiki/List-of-Popular-Domains"
+__progname=$(basename "$0")
 
-	exit 1
+TRUE=0
+FALSE=1
+
+COMMENTS=$FALSE
+FILE='/dev/stdin'
+FILTER=''
+PROTO=''
+MX=$TRUE
+DIGSERVER=''
+
+CMD=run
+VERSION=1.0
+
+function log_msg {
+	local OPTIND o a
+	while getopts :p: opt ; do
+		case $opt in
+			p)
+				PAD=$OPTARG
+				;;
+			*)
+				;;
+		esac
+	done
+	shift $(( OPTIND - 1 ))
+	msg=$@
+
+	if [ -z "$msg" ] ; then
+		return 0
+	fi
+
+	if [ -n "$PAD" ] ; then
+		printf -v padding "%-${PAD}s" ' '
+	fi
+
+	echo "${padding}${msg}"
 }
 
-if [[ ${1:-empty} = '-h' || ${1:-empty} = empty ]]
-then
-	echo usage: ${0} file
-	echo
-	echo "Recursively looks up all the SPF records for the all the domains"
-	echo "listed in the file and emits the results to stdin."
-	echo
-	usage
-fi
+function lookup {
+	# +short returns just the answer portion
+	# $1 = type -- A, TXT, MX
+	# $2 = domain
+	dig $DIGSERVER +short $1 $2
+}
 
-file="${1}"
+function process_ips {
+	ips=$@
 
-if [[ ! -e ${file} || ${file:-empty} = "empty" ]]
-then
-	usage
-fi
+	for ip in $(echo $ips) ; do
+		valid=$TRUE
+		if [[ -e $FILTER && -x $FILTER ]] ; then
+			ip=$($FILTER $ip)
+		fi
 
-# http://blog.markhatton.co.uk/2011/03/15/regular-expressions-for-ip-addresses-cidr-ranges-and-hostnames/
-reg_ip='^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$'
-reg_cidr='^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$'
-
-get_ips() {
-	echo "#IPs for ${1}..."
-	domain="${1}"
-	spfs=$(dig "${domain}" txt 8.8.8.8 | grep -i spf)
-	ips=$(echo $spfs | tr ' ' '\n' | grep ip4 | cut -d ':' -f 2)
-
-	for i in $(echo ${ips} | tr ' ' '\n')
-	do
-		ip=$(echo $i | egrep "$reg_ip")
-		if [ ${ip:-empty} != 'empty' ]
-		then
-			echo $ip
-		else
-			ip_cidr=$(echo $i | egrep "$reg_cidr")
-			if [ ${ip_cidr:-empty} != empty ]
-			then
-				echo $ip_cidr
-			fi
+		if [ -n "$ip" ] ; then
+			echo $ip | tr ' ' '\n'
 		fi
 	done
+}
 
-	domains=$(echo $spfs | tr ' ' '\n' | grep include | cut -d ':' -f 2)
-	for i in $domains;
-	do
-		get_ips $i;
+function process_mx {
+	domain=$@
+	mxs=$(lookup MX $domain | sed 's#.* \(.*\).$#\1#')
+	for mx in $(echo $mxs | tr ' ' '\n') ; do
+		ips=$(lookup A $mx)
+
+		process_ips $ips
 	done
 }
 
-for i in $(cat "${file}" | grep -v '#' | cut -d ' ' -f 1)
-do
-	get_ips "${i}"
+function get_ips {
+	domain="${1}"
+	if [ $COMMENTS -eq $TRUE ] ; then
+		echo "#IPs for $domain..."
+	fi
+
+	# sed fixes stray spaces inserted in ip addresses
+	# e.g., echo '127.0.0 .1' -> 127.0.0.1
+	spfs=$(lookup txt $domain \
+		       | grep -i spf \
+		       | sed 's#\(.*\)\(" "\)\(.*\)#\1\3#g' \
+		       | tr -d '"' \
+		       | tr -s '\n'
+	    )
+
+
+	if [ -n "$spfs" ] ; then
+		ips=$(echo $spfs \
+			      | tr ' ' '\n' \
+			      | egrep "$PROTO" \
+			      | cut -d ':' -f 2-
+		   )
+		process_ips $ips
+
+		includes=$(echo $spfs \
+				   | tr ' ' '\n' \
+				   | grep -i include \
+				   | cut -d ':' -f 2
+			)
+		for i in $includes ; do
+			get_ips $i
+		done
+
+		mxs=$(echo $spfs \
+			      | tr ' ' '\n' \
+			      | grep -i mx
+		   )
+		if [ -n "$mxs" ] ; then
+			process_mx $domain
+		fi
+
+		redirects=$(echo $spfs \
+				    | tr ' ' '\n' \
+				    | grep -i redirect \
+				    | cut -d '=' -f 2
+			 )
+		for i in $redirects ; do
+			get_ips $i
+		done
+	elif [ $MX -eq $TRUE ] ; then
+		process_mx $domain
+	fi
+}
+
+function version {
+	log_msg "$__progname $VERSION"
+}
+
+function usage {
+	# dispose of stdin data
+	if [ ! -t 0 ] ; then
+		cat > /dev/null
+	fi
+
+	usage="usage: $__progname"
+	length=$(expr ${#usage} + 1)
+
+	log_msg "$usage [-4] [-6] [-c] [-d dns server] [-f file]"
+
+	log_msg -p $length "[-h] [-m] [-t filter command] [-v]"
+
+	log_msg -p $length "[domain] [domain] ..."
+}
+
+while getopts :46cd:f:hmt:v: opt ; do
+	case $opt in
+		4)
+			if [ -z "$PROTO" ] ; then
+				PROTO='^ip4'
+			else
+				PROTO="$PROTO|^ip4"
+			fi
+			;;
+		6)
+			if [ -z "$PROTO" ] ; then
+				PROTO='^ip6'
+			else
+				PROTO="$PROTO|^ip6"
+			fi
+			;;
+		c)
+			COMMENTS=$TRUE
+			;;
+		d)
+			DIGSERVER="@${OPTARG}"
+			;;
+		f)
+			FILE=$OPTARG
+			;;
+		h)
+			CMD="usage"
+			;;
+		m)
+			MX=$FALSE
+			;;
+		t)
+			FILTER="$OPTARG"
+			;;
+		v)
+			CMD="VERSION"
+			;;
+		:)
+			log_msg $__progname: option requires an argument \
+				-- $OPTARG
+			log_msg
+			CMD=abort
+			;;
+		\?)
+			log_msg $__progname: invalid option -- $OPTARG
+			log_msg
+			CMD=abort
+			;;
+	esac
 done
+shift $(( OPTIND - 1 ))
+domains=$@
+
+function run {
+	if [ -z "$PROTO" ] ; then
+		PROTO='^ip4|^ip6'
+	fi
+
+	if [ -n "$domains" ] ; then
+		for domain in $domains ; do
+			get_ips "$domain"
+		done
+	elif [ -e "$FILE" ] ; then
+		while read LINE ; do
+			get_ips "$LINE"
+		done < "$FILE"
+	fi
+}
+
+case $CMD in
+	run)
+		run
+		;;
+	usage)
+		usage
+		;;
+	VERSION)
+		version
+		;;
+	*)
+		usage
+		;;
+esac

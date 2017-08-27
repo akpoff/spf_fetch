@@ -1,0 +1,15 @@
+#!/bin/sh
+
+SIPCALC=$(which sipcalc)
+
+if [ -n "$SIPCALC" ] ; then
+	ip="$1"
+
+	is_err=$(sipcalc "$ip" | grep -i ERR)
+
+	if [ -z "$is_err" ] ; then
+		echo "$ip"
+	fi
+else
+	echo "$ip"
+fi
