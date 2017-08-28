@@ -16,55 +16,129 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 
-usage() {
-	echo "Updates a pf(4) table called \"common_white\" with"
-	echo "the list of ipv4 addresses for the domains listed"
-	echo "in /etc/mail/common_domains by calling spf_fetch."
-	echo
-	echo "A good list can be found at:"
-	echo "https://github.com/mailcheck/mailcheck/wiki/List-of-Popular-Domains"
+__progname=$(basename "$0")
 
-	exit 1
+TRUE=0
+FALSE=1
+
+COMMENTS=$FALSE
+FILE='/etc/mail/common_domains'
+SPF_FETCH_ARGS=''
+TABLE='common_white'
+
+CMD=run
+VERSION=1.0
+
+function log_msg {
+	local OPTIND o a
+	while getopts :p: opt ; do
+		case $opt in
+			p)
+				PAD=$OPTARG
+				;;
+			*)
+				;;
+		esac
+	done
+	shift $(( OPTIND - 1 ))
+	msg=$@
+
+	if [ -z "$msg" ] ; then
+		return 0
+	fi
+
+	if [ -n "$PAD" ] ; then
+		printf -v padding "%-${PAD}s" ' '
+	fi
+
+	echo "${padding}${msg}"
 }
 
-if [ ${1:-empty} = '-h' ]
-then
-	echo usage: ${0} [file] [table]
-	echo
-	usage
-fi
+function run {
+	has_table=$(pfctl -s Tables | grep "$TABLE")
 
-if [ "${1:-empty}" = 'empty' ]
-then
-	file="/etc/mail/common_domains"
-else
-	file="${1}"
-fi
+	if [[ -n "$has_table" && -e "$FILE" ]] ; then
+		output="${FILE}_ips"
+		rm -f "${output}"
 
-if [ "${2:-empty}" = 'empty' ]
-then
-	table="common_white"
-else
-	table="${2}"
-fi
+		echo spf_fetch -c -f "$FILE" \
+		     "$SPF_FETCH_ARGS" >> "${output}"
 
-has_table=$(pfctl -s Tables | grep "${table}")
+		pfctl -t "$TABLE" -T replace -f "${output}"
+	elif [ -z "$has_table" ] ; then
+		echo Table not found: ${table}
 
-if [[ "${file:-empty}" != 'empty' && -f "${file}" && "${has_table:-empty}" != 'empty' ]]
-then
-	output="/etc/mail/common_domains_white"
-	rm -f "${output}"
+		exit 2
+	elif [ ! -e "$FILE" ] ; then
+		echo File not found: $FILE
 
-	spf_fetch "${file}" >> "${output}"
+		exit 1
+	else
+		echo Unknown error
 
-	pfctl -t "${table}" -T replace -f "${output}"
-elif [ "${has_table:-empty}" = 'empty' ]
-then
-	echo Table not found: ${table}
+		exit 1
+	fi
+}
 
-	exit 2
-else
-	echo File not found: ${file}
+function version {
+	log_msg "$__basename $VERSION"
+}
 
-	exit 1
-fi
+function usage {
+	# dispose of stdin data
+	if [ ! -t 0 ] ; then
+		cat > /dev/null
+	fi
+
+	usage="usage: $__progname"
+	pad=${#usage}
+
+	log_msg "$usage [-afhtv] [-a spf_fetch_args] [-f file] [-h] [-t table] [-v]"
+}
+
+while getopts :a:f:ht:v opt ; do
+	case $opt in
+		a)
+			SPF_FETCH_ARGS=$OPTARG
+			;;
+		f)
+			FILE=$OPTARG
+			;;
+		h)
+			CMD="usage"
+			;;
+		t)
+			TABLE=$OPTARG
+			;;
+		v)
+			CMD="VERSION"
+			;;
+		:)
+			log_msg $__progname: option requires an argument \
+				-- $OPTARG
+			log_msg
+			CMD=abort
+			;;
+		\?)
+			log_msg $__progname: invalid option -- $OPTARG
+			log_msg
+			CMD=abort
+			;;
+	esac
+done
+shift $(( OPTIND - 1 ))
+
+case $CMD in
+	run)
+		run
+		;;
+	usage)
+		usage
+		;;
+	version)
+		version
+		;;
+	*)
+		usage
+		;;
+esac

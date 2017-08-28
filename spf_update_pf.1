@@ -1,0 +1,102 @@
+.\" Copyright (c) 2016 Aaron Poffenberger <akp@hypernote.com>
+.\"
+.\" Permission to use, copy, modify, and distribute this software for any
+.\" purpose with or without fee is hereby granted, provided that the above
+.\" copyright notice and this permission notice appear in all copies.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+.\" WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+.\" MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+.\" ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+.\" WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+.\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+.\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.Dd $Mdocdate: Jul 10 2016 $
+.Dt SPF_UPDATE_PF 1
+.Os
+.Sh NAME
+.Nm spf_update_pf
+.Nd updates a named
+.Xr pf 4
+table with ip addresses from
+.Xr spf_fetch 1
+.Sh SYNOPSIS
+.Nm spf_update_pf
+.Bk -words
+.Op Fl afhtv
+.Op Fl a Ar spf_fetch_args
+.Op Fl f Ar file
+.Op Fl h
+.Op Fl t Ar table
+.Op Fl v
+.Ek
+.Sh DESCRIPTION
+.Nm
+calls
+.Xr spf_fetch 1
+with the specified file and updates a named
+.Xr spf 4
+table with the returned SPF records.
+.Pp
+Suitable for use with a daily
+.Xr cron 8
+job.
+.Pp
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl a
+Arguments to pass through to
+.Xr spf_fetch 1 .
+.It Fl f
+File to use. Default: /etc/mail/common_domains
+.It Fl h
+Help message.
+.It Fl t
+.Xr pf 4
+table to load the addresses to. Default: common_white
+.It Fl v
+Print the version.
+.Sh FILES
+.Bl -tag -width "file" -compact
+.It Pa file
+Formatted with one domain per line. Comments begin with hash (#).
+.Pp
+.Lk https://github.com/mailcheck/mailcheck/wiki/List-of-Popular-Domains "List of Popular Domains"
+.Pp
+.It Pa file_ips
+File created in same directory as the input file to receive the SPF records from
+.Xr spf_fetch 1 .
+.Sh EXAMPLES
+Daily
+.Xr cron 8
+job:
+.Pp
+.Bd -literal
+	@daily		/root/bin/spf_update_pf
+.Ed
+.Pp
+Daily
+.Xr cron 8
+job with
+.Xr spf_fetch 1
+filter:
+.Pp
+.Bd -literal
+	@daily		/root/bin/spf_update_pf -a '-t filters/filter_sipcalc'
+.Ed
+.Sh DIAGNOSTICS
+.Nm
+utility always exits 0.
+.Sh SEE ALSO
+.Xr spf_fetch 1
+.Sh AUTHORS
+.An -nosplit
+The
+.Nm
+utility was written by
+.An Aaron Poffenberger Aq Mt akp@hypernote.com .
+.Sh BUGS
+.Nm
+should return error codes for conditions like failed look-ups.
