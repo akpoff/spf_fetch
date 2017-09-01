@@ -73,8 +73,7 @@ requires [sipcalc](https://github.com/sii/sipcalc) so is not run
 without explicitly adding with command-line parameter `-t
 filters/filter_sipcalc`.
 
-Example
---------------------------------------
+### Example Output
 
 Given a list of domains like in the examples/example_domains:
 
