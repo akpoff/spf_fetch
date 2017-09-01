@@ -61,7 +61,7 @@ function run {
 		output="${FILE}_ips"
 		rm -f "${output}"
 
-		echo spf_fetch -c -f "$FILE" \
+		spf_fetch -c -f "$FILE" \
 		     "$SPF_FETCH_ARGS" >> "${output}"
 
 		pfctl -t "$TABLE" -T replace -f "${output}"
