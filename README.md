@@ -119,8 +119,7 @@ Each domain from the list and all domains discovered as `include` or
 `redirect` domains in the SPF records will be recursively looked up to
 get their relevant IPs addresses.
 
-Where To Get A Good List of Domains
------------------------------------
+### Where To Get A Good List of Domains
 
 To get a good list of domains, see the github mailcheck
 (https://github.com/mailcheck/mailcheck/wiki/List-of-Popular-Domains)
