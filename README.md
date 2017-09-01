@@ -54,11 +54,24 @@ addresses for email greylisting utilities like OpenBSD `spamd(8)`.
 + Fully-recursive look ups
 + Specify just IPv4 or IPv6 records (defaults to both)
 + Specify DNS server (defaults to system defined)
-+ Lookup from file, command-line or *stdin*
++ Lookup from file, command-line or `stdin`
 + Filters to process, transform or filter addresses after recursive
   lookup
 
 See the man page for further details.
+
+### Filters
+
+`spf_fetch` can now run user-supplied filters to process, transform or
+remove addresses after lookup but before returning them to `stdout`
+
+Ships with `filters/filter_sipcalc` to validate IPv4 and IPv6
+addresses.
+
+__Note__: The filter
+requires [sipcalc](https://github.com/sii/sipcalc) so is not run
+without explicitly adding with command-line parameter `-t
+filters/filter_sipcalc`.
 
 Example
 --------------------------------------
