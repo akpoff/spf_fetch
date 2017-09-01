@@ -33,7 +33,7 @@ all companies have *SPF* records, but many do. Nearly all the large
 companies like Google and Yahoo do, in part because they helped define
 the SPF standard.
 
-Looking up *SPF* records is not a simple matter of typeing `dig
+Looking up *SPF* records is not a simple matter of typing `dig
 gmail.com SPF`. *SPF* records are not a record type. They're stored as
 *TXT* fields and have to be parsed. They can *include* the records
 from another domain or *redirect* to another domain. To get the full
