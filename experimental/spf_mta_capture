@@ -154,6 +154,7 @@ function run {
 			for ip in $(echo $ips) ; do
 				$DOAS pfctl -t "$TABLE" -T add $ip
 				echo "$domain	 # $timestamp" >> "$FILE"
+				echo "$ip" >> "$FILE_ips"
 			done
 		fi
 	done < "${1:-/dev/stdin}"
