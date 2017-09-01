@@ -1,0 +1,178 @@
+#!/bin/sh
+
+#
+# Copyright (c) 2017 Aaron Poffenberger <akp@hypernote.com>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#
+
+__progname=$(basename "$0")
+
+TRUE=0
+FALSE=1
+
+FILE='/etc/mail/mta_domains'
+SECONDS=86400
+SPF_FETCH_ARGS=''
+TABLE='mta_white'
+
+DOAS=$(which doas)
+if [ -z "$DOAS" ] ; then
+	DOAS=$(which sudo)
+fi
+
+CMD=run
+VERSION=0.1
+
+function log_msg {
+	local OPTIND o a
+	while getopts :p: opt ; do
+		case $opt in
+			p)
+				PAD=$OPTARG
+				;;
+			*)
+				;;
+		esac
+	done
+	shift $(( OPTIND - 1 ))
+	msg=$@
+
+	if [ -z "$msg" ] ; then
+		return 0
+	fi
+
+	if [ -n "$PAD" ] ; then
+		printf -v padding "%-${PAD}s" ' '
+	fi
+
+	echo "${padding}${msg}"
+}
+
+TMPFILE=`mktemp -q /tmp/$__progname.XXXXXXXXXX` ||
+	(log_msg "Unable to create $__progname tmp file ... aborting" ; \
+	 exit $err_exit)
+
+TMPCOPY=`mktemp -q /tmp/$__progname.XXXXXXXXXX` ||
+	(log_msg "Unable to create $__progname tmp file ... aborting" ; \
+	 exit $err_exit)
+
+trap "rm -f '$TMPFILE' '$TMPCOPY'" EXIT
+trap "log_msg $__progname aborted by user;exit 1" INT
+
+function version {
+	log_msg "$__progname $VERSION"
+}
+
+function usage {
+	# dispose of stdin data
+	if [ ! -t 0 ] ; then
+		cat > /dev/null
+	fi
+
+	usage="usage: $__progname"
+	length=$(expr ${#usage} + 1)
+
+	log_msg "$usage [-afhrstv] [-a spf_fetch_args] [-f file] [-h] [-t table]"
+        log_msg -p $length "[-v]"
+}
+
+while getopts :af:hrs:t:v: opt ; do
+	case $opt in
+		a)
+			SPF_FETCH_ARGS=$OPTARG
+			;;
+		f)
+			FILE=$OPTARG
+			;;
+		h)
+			CMD="usage"
+			;;
+		r)
+			CMD="truncate"
+			;;
+		s)
+			SECONDS=$OPTARG
+			;;
+		t)
+			TABLE=$OPTARG
+			;;
+		v)
+			CMD="VERSION"
+			;;
+		:)
+			log_msg $__progname: option requires an argument \
+				-- $OPTARG
+			log_msg
+			CMD=abort
+			;;
+		\?)
+			log_msg $__progname: invalid option -- $OPTARG
+			log_msg
+			CMD=abort
+			;;
+	esac
+done
+shift $(( OPTIND - 1 ))
+domains=$@
+
+function truncate {
+	cp "$FILE" "$TMPCOPY"
+	cutoff=$(expr `date +'%s'` - 86400)
+	while read LINE ; do
+		timestamp=$(echo "$LINE" | cut -d '#' -f 2 | tr -d ' ')
+		if [ $timestamp -ge $cutoff ] ; then
+			echo "$LINE" > "$TMPFILE"
+		fi
+	done < "$TMPCOPY"
+
+	cat "$TMPFILE" > "$FILE"
+
+	rm -f "$TMPCOPY" "$TMPFILE"
+}
+
+function run {
+	while read LINE ; do
+		domain=$(echo "$LINE" | \
+				 sed \
+					 -e '/.*mta event=delivery.*/ !d' \
+					 -e 's#.*mta event=delivery.*to=<[^@]*@\([^>]*\).*#\1#'
+		      )
+		if [ -n "$domain" ] ; then
+			timestamp=$(date +'%s')
+			ips=$(/usr/local/bin/spf_fetch "$domain")
+			for ip in $(echo $ips) ; do
+				$DOAS pfctl -t "$TABLE" -T add $ip
+				echo "$domain	 # $timestamp" >> "$FILE"
+			done
+		fi
+	done < "${1:-/dev/stdin}"
+}
+
+case $CMD in
+	run)
+		run
+		;;
+	truncate)
+		truncate
+		;;
+	usage)
+		usage
+		;;
+	VERSION)
+		version
+		;;
+	*)
+		usage
+		;;
+esac
