@@ -59,10 +59,9 @@ function run {
 
 	if [[ -n "$has_table" && -e "$FILE" ]] ; then
 		output="${FILE}_ips"
-		rm -f "${output}"
 
 		spf_fetch -c -f "$FILE" \
-		     "$SPF_FETCH_ARGS" >> "${output}"
+		     "$SPF_FETCH_ARGS" > "${output}"
 
 		pfctl -t "$TABLE" -T replace -f "${output}"
 	elif [ -z "$has_table" ] ; then
