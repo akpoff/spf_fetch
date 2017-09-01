@@ -58,6 +58,7 @@ Help message.
 table to load the addresses to. Default: common_white
 .It Fl v
 Print the version.
+.El
 .Sh FILES
 .Bl -tag -width "file" -compact
 .It Pa file
@@ -68,6 +69,7 @@ Formatted with one domain per line. Comments begin with hash (#).
 .It Pa file_ips
 File created in same directory as the input file to receive the SPF records from
 .Xr spf_fetch 1 .
+.El
 .Sh EXAMPLES
 Daily
 .Xr cron 8
@@ -90,6 +92,7 @@ filter:
 .Nm
 utility always exits 0.
 .Sh SEE ALSO
+.Xr pf 4
 .Xr spf_fetch 1
 .Sh AUTHORS
 .An -nosplit
