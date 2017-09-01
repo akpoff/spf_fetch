@@ -144,10 +144,22 @@ input and redirect the output to a file called `common_domains_ips` in
 `common_white` defined in `pf.conf(5)`.
 
 ### Features
+
 + Specify file and `pf(5)` table
 + Pass additional arguments to `spf_fetch`
 
 See the man page for further details.
+
+### Upgrading
+
+The output from `spf_update_pf` is now directed to
+`common_domains_ips` rather than the previous `common_domains_white`.
+If you're using a `pf(5)` table you'll want to rewrite line in
+`pf.conf(5)` to something like:
+
+```
+table <common_white> persist file "/etc/mail/common_domains_ips"
+```
 
 spf_mta_capture
 ---------------
@@ -192,4 +204,4 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 Updates and Suggestions
 -----------------------
 
-Let me know by fork/pull or email if you find bugs or other issues.
+Let me know by `Issue` or email if you find bugs or other problems.

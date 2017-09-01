@@ -1,0 +1,10 @@
+The output from `spf_update_pf` is now directed to
+`common_domains_ips` rather than the previous `common_domains_white`.
+
+If you're using a `pf(5)` table you'll want to rewrite line in
+`pf.conf(5)` to something like:
+
+--------
+table <common_white> persist file "/etc/mail/common_domains_ips"
+--------
+
