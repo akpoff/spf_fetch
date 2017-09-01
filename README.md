@@ -55,6 +55,8 @@ addresses for email greylisting utilities like OpenBSD `spamd(8)`.
 + Specify just IPv4 or IPv6 records (defaults to both)
 + Specify DNS server (defaults to system defined)
 + Lookup from file, command-line or *stdin*
++ Filters to process, transform or filter addresses after recursive
+  lookup
 
 See the man page for further details.
 
