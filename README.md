@@ -45,7 +45,7 @@ This is where `spf_fetch` comes in.
 spf_fetch
 ---------
 
-`spf_fetch` is a script to recursively look-up __SPF__ records from a
+`spf_fetch` is a utility to recursively look-up __SPF__ records from a
 list of domains. The output is a list of IPv4 and IPv6 addresses and
 blocks. This list can be used to create a whitelist of outbound
 __MTA__ addresses for email greylisting utilities like OpenBSD
@@ -131,13 +131,13 @@ file.
 spf_update_pf
 -------------
 
-`spf_update_pf` is a script that will call `spf_fetch` with a file of
+`spf_update_pf` is a utility that will call `spf_fetch` with a file of
 domains that should be whitelisted and add them to a table in OpenBSD
 `pf(4)`.
 
 `spf_update_pf` defaults to look for a file called `common_domains` in
-`/etc/mail`. The script will call `spf_fetch` with the file as the
-input and redirect the output to a file called `common_domains_ips` in
+`/etc/mail`. It will call `spf_fetch` with the file as the input and
+redirect the output to a file called `common_domains_ips` in
 `/etc/mail`.
 
 `spf_update_pf` defaults to add the ip addresses to a table called
@@ -164,7 +164,7 @@ table <common_white> persist file "/etc/mail/common_domains_ips"
 spf_mta_capture
 ---------------
 
-`spf_mta_capture` is an __experimental__ script that will watch a log file
+`spf_mta_capture` is an __experimental__ utility to watch a log file
 to capture the domains of all outbound mail. It will then retrieve the
 SPF records for the domain by calling `spf_fetch` and then add them to
 a table in `pf(5)`.
