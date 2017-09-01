@@ -6,7 +6,7 @@ greylisting easier.
 
 Greylisting is a technique for defeating spam by temporarily rejecting
 email unknown senders. Well-behaved mail servers will try again after
-a short interval, per the *RFC*. Spammers will usually move on and not
+a short interval, per the __RFC__. Spammers will usually move on and not
 try again. Once the rejected server tries again, it's ip address is
 added to a list of known-good mail servers for a period time, often a
 month or longer.
@@ -19,7 +19,7 @@ the mailer numerous times until the email is redelivered by one of the
 already greylisted ip addresses.
 
 One naive technique for pre-greylisting large mailers like Google is
-to add their *MX* records to the approved senders list. Unfortunately,
+to add their __MX__ records to the approved senders list. Unfortunately,
 large companies rarely use the send servers and ip addresses for both
 sending and receiving.
 
@@ -29,26 +29,27 @@ list:
 [SPF records](https://en.wikipedia.org/wiki/Sender_Policy_Framework).
 Sender Policy Framework record are DNS entries that list ip addresses
 and blocks of ip addresses that the company will send email from. Not
-all companies have *SPF* records, but many do. Nearly all the large
+all companies have __SPF__ records, but many do. Nearly all the large
 companies like Google and Yahoo do, in part because they helped define
 the SPF standard.
 
-Looking up *SPF* records is not a simple matter of typing `dig
-gmail.com SPF`. *SPF* records are not a record type. They're stored as
-*TXT* fields and have to be parsed. They can *include* the records
-from another domain or *redirect* to another domain. To get the full
-list of ip addresses authorized to send on behalf of a domain requires
-multiple recursive lookups.
+Looking up __SPF__ records is not a simple matter of typing `dig
+gmail.com SPF`. __SPF__ records are not a record type. They're stored
+as __TXT__ fields and have to be parsed. They can __include__ the
+records from another domain or __redirect__ to another domain. To get
+the full list of ip addresses authorized to send on behalf of a domain
+requires multiple recursive lookups.
 
 This is where `spf_fetch` comes in.
 
 spf_fetch
 ---------
 
-`spf_fetch` is a script to recursively look-up *SPF* records from a
+`spf_fetch` is a script to recursively look-up __SPF__ records from a
 list of domains. The output is a list of IPv4 and IPv6 addresses and
-blocks. This list can be used to create a whitelist of outbound *MTA*
-addresses for email greylisting utilities like OpenBSD `spamd(8)`.
+blocks. This list can be used to create a whitelist of outbound
+__MTA__ addresses for email greylisting utilities like OpenBSD
+`spamd(8)`.
 
 ### Features
 + Fully-recursive look ups
@@ -151,7 +152,7 @@ See the man page for further details.
 spf_mta_capture
 ---------------
 
-`spf_mta_capture` is an experimental script that will watch a log file
+`spf_mta_capture` is an __experimental__ script that will watch a log file
 to capture the domains of all outbound mail. It will then retrieve the
 SPF records for the domain by calling `spf_fetch` and then add them to
 a table in `pf(5)`.
@@ -159,7 +160,7 @@ a table in `pf(5)`.
 At the moment, `spf_mta_capture` only parses log files created by
 OpenSMTPD.
 
-`spf_mta_capture` is meant to run as a *pipe* program by `syslogd(8)`.
+`spf_mta_capture` is meant to run as a __pipe__ program by `syslogd(8)`.
 
 ### Features
 + Writes send-to domains to file with timestamp in comment on same
