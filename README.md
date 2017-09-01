@@ -1,10 +1,62 @@
 About spf_fetch
 ===================
 
-spf_fetch is a script to recursively look-up SPF records from a list
-of domains. The output is a list of ipv4 addresses or ipv4 blocks.
-This list can be used to create a whitelist of outbound *MTA* addresses
-for email greylisting utilities like OpenBSD `spamd(8)`.
+The `spf_fetch` project is a collection of utilities to make managing
+greylisting easier.
+
+Greylisting is a technique for defeating spam by temporarily rejecting
+email unknown senders. Well-behaved mail servers will try again after
+a short interval, per the *RFC*. Spammers will usually move on and not
+try again. Once the rejected server tries again, it's ip address is
+added to a list of known-good mail servers for a period time, often a
+month or longer.
+
+One of the problem with greylisting, however, is that large senders
+like Google, Microsoft, Yahoo and others have multiple outbound mail
+servers and do not often retry from the same host, ip address or block
+of ip addresses. This results in the greylisting software rejecting
+the mailer numerous times until the email is redelivered by one of the
+already greylisted ip addresses.
+
+One naive technique for pre-greylisting large mailers like Google is
+to add their *MX* records to the approved senders list. Unfortunately,
+large companies rarely use the send servers and ip addresses for both
+sending and receiving.
+
+The `spf_fetch` project uses a simple technique for pre-determining
+which ip addresses and blocks of addresses to add to the approved
+list:
+[SPF records](https://en.wikipedia.org/wiki/Sender_Policy_Framework).
+Sender Policy Framework record are DNS entries that list ip addresses
+and blocks of ip addresses that the company will send email from. Not
+all companies have *SPF* records, but many do. Nearly all the large
+companies like Google and Yahoo do, in part because they helped define
+the SPF standard.
+
+Looking up *SPF* records is not a simple matter of typeing `dig
+gmail.com SPF`. *SPF* records are not a record type. They're stored as
+*TXT* fields and have to be parsed. They can *include* the records
+from another domain or *redirect* to another domain. To get the full
+list of ip addresses authorized to send on behalf of a domain requires
+multiple recursive lookups.
+
+This is where `spf_fetch` comes in.
+
+spf_fetch
+---------
+
+`spf_fetch` is a script to recursively look-up *SPF* records from a
+list of domains. The output is a list of IPv4 and IPv6 addresses and
+blocks. This list can be used to create a whitelist of outbound *MTA*
+addresses for email greylisting utilities like OpenBSD `spamd(8)`.
+
+### Features
++ Fully-recursive look ups
++ Specify just IPv4 or IPv6 records (defaults to both)
++ Specify DNS server (defaults to system defined)
++ Lookup from file, command-line or *stdin*
+
+See the man page for further details.
 
 Example
 --------------------------------------
@@ -49,40 +101,67 @@ Given a list of domains like in the examples/example_domains:
     #IPs for _netblocks3.google.com...
     172.217.0.0/19
 
-Each domain from the list and all domains discovered as `include`
-domains in the SPF records will be listed with their relevant IPs and
-IP-blocks.
+Each domain from the list and all domains discovered as `include` or
+`redirect` domains in the SPF records will be recursively looked up to
+get their relevant IPs addresses.
 
 Where To Get A Good List of Domains
 -----------------------------------
-To get a good list of domains, see the github mailcheck (https://github.com/mailcheck/mailcheck/wiki/List-of-Popular-Domains)
 
-See file `common_domains` for a properly formatted version of the file.
+To get a good list of domains, see the github mailcheck
+(https://github.com/mailcheck/mailcheck/wiki/List-of-Popular-Domains)
 
-Use with PF
------------
+See file `common_domains` for a properly formatted version of the
+file.
 
-`spf_fetch` includes an additional script (`spf_update_pf`) to update
-a table in OpenBSD `pf(4)`.
+spf_update_pf
+-------------
+
+`spf_update_pf` is a script that will call `spf_fetch` with a file of
+domains that should be whitelisted and add them to a table in OpenBSD
+`pf(4)`.
 
 `spf_update_pf` defaults to look for a file called `common_domains` in
 `/etc/mail`. The script will call `spf_fetch` with the file as the
-input and redirects the output to a file called `common_domains_white`
-in `/etc/mail`.
+input and redirect the output to a file called `common_domains_ips` in
+`/etc/mail`.
 
-The script expects a table called `common_white` in `pf.conf(5)`. The
-table name can be overridden by passing the name in as parameter 2.
-This implies, then, that to pass in a different table name you must
-pass in the file name as parameter 1.
+`spf_update_pf` defaults to add the ip addresses to a table called
+`common_white` defined in `pf.conf(5)`.
 
-See file `pf.conf` for an example of the rules to add to `pf.conf`.
+### Features
++ Specify file and `pf(5)` table
++ Pass additional arguments to `spf_fetch`
 
-*N.B.* `spf_update_pf` must be able to find `spf_fetch` on the path.
+See the man page for further details.
+
+spf_mta_capture
+---------------
+
+`spf_mta_capture` is an experimental script that will watch a log file
+to capture the domains of all outbound mail. It will then retrieve the
+SPF records for the domain by calling `spf_fetch` and then add them to
+a table in `pf(5)`.
+
+At the moment, `spf_mta_capture` only parses log files created by
+OpenSMTPD.
+
+`spf_mta_capture` is meant to run as a *pipe* program by `syslogd(8)`.
+
+### Features
++ Writes send-to domains to file with timestamp in comment on same
+  line
++ Specify output file and `pf(5)` table
++ Pass additional arguments to `spf_fetch`
++ Truncate entries older than `now() - n seconds`
++ Specify truncation seconds
+
+See the man page for further details.
 
 Copyright and License
 ---------------------
 
-Copyright (c) 2016 Aaron Poffenberger <akp@hypernote.com>
+Copyright (c) 2016-2017 Aaron Poffenberger <akp@hypernote.com>
 
 Permission to use, copy, modify, and distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
@@ -99,4 +178,4 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 Updates and Suggestions
 -----------------------
 
-Let me know by fork/pull or send me an email if you find mistakes.
+Let me know by fork/pull or email if you find bugs or other issues.
