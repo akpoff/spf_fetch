@@ -65,10 +65,10 @@ File to log doamins to. Default: /etc/mail/mta_domains
 .It Fl h
 Help message.
 .It Fl r
-Truncate the specified file by removing any entries whose timestamp
-is less than current time minus the seconds specified.
+Remove expired domains from the specified file by removing any entries
+whose timestamp is less than current time minus the seconds specified.
 .It Fl s
-Seconds for truncation. Default: 86400 (24 hours)
+Seconds for removal. Default: 3110400 (36 days)
 .It Fl t
 .Xr pf 4
 table to load the addresses to. Default: mta_white

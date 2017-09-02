@@ -23,7 +23,8 @@ FALSE=1
 
 COMMON='/etc/mail/common_domains'
 FILE='/etc/mail/mta_domains'
-SECONDS=86400
+# 36 days
+SECONDS=3110400
 SPF_FETCH_ARGS=''
 TABLE='mta_white'
 
@@ -103,7 +104,7 @@ while getopts :af:hrs:t:v: opt ; do
 			CMD="usage"
 			;;
 		r)
-			CMD="truncate"
+			CMD="remove"
 			;;
 		s)
 			SECONDS=$OPTARG
@@ -130,9 +131,9 @@ done
 shift $(( OPTIND - 1 ))
 domains=$@
 
-function truncate {
+function remove {
 	cp "$FILE" "$TMPCOPY"
-	cutoff=$(expr `date +'%s'` - 86400)
+	cutoff=$(expr `date +'%s'` - $SECONDS)
 	while read LINE ; do
 		timestamp=$(echo "$LINE" | cut -d '#' -f 2 | tr -d ' ')
 		if [ $timestamp -ge $cutoff ] ; then
@@ -173,8 +174,8 @@ case $CMD in
 	run)
 		run
 		;;
-	truncate)
-		truncate
+	remove)
+		remove
 		;;
 	usage)
 		usage
