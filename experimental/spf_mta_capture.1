@@ -24,8 +24,9 @@ table.
 .Sh SYNOPSIS
 .Nm spf_mta_capture
 .Bk -words
-.Op Fl afhrstv
+.Op Fl acfhrstv
 .Op Fl a Ar spf_fetch_args
+.Op Fl c Ar common
 .Op Fl f Ar file
 .Op Fl h
 .Op Fl t Ar table
@@ -35,10 +36,15 @@ table.
 .Nm
 calls
 .Xr spf_fetch 1
-parses each line of text received from stdin looking for outbound mail transfers.
-It captures the domain of the recipient email, calls
+parses each line of text received from stdin looking for outbound mail
+transfers. It captures the domain of the recipient email. The domain
+is checked against the list of common domains and exlucded if found.
+If not found,
+.Nm
+calls
 .Xr spf_fetch 1
-with the domain, adds the SPF records to the named table in
+with the domain and finally adds the discovered SPF records to the
+named table in
 .Xr pf 4
 and logs the domain and time to the specified file.
 .Pp
@@ -51,6 +57,9 @@ The options are as follows:
 .It Fl a
 Arguments to pass through to
 .Xr spf_fetch 1 .
+.It Fl c
+File with list of common domains to check against. Default:
+/etc/mail/common_domains
 .It Fl f
 File to log doamins to. Default: /etc/mail/mta_domains
 .It Fl h

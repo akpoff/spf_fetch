@@ -21,6 +21,7 @@ __progname=$(basename "$0")
 TRUE=0
 FALSE=1
 
+COMMON='/etc/mail/common_domains'
 FILE='/etc/mail/mta_domains'
 SECONDS=86400
 SPF_FETCH_ARGS=''
@@ -83,14 +84,17 @@ function usage {
 	usage="usage: $__progname"
 	length=$(expr ${#usage} + 1)
 
-	log_msg "$usage [-afhrstv] [-a spf_fetch_args] [-f file] [-h] [-t table]"
-        log_msg -p $length "[-v]"
+	log_msg "$usage [-acfhrstv] [-a spf_fetch_args] [-c common] [-f file]"
+	log_msg -p $length "[-h] [-t table] [-v]"
 }
 
 while getopts :af:hrs:t:v: opt ; do
 	case $opt in
 		a)
 			SPF_FETCH_ARGS=$OPTARG
+			;;
+		c)
+			COMMON=$OPTARG
 			;;
 		f)
 			FILE=$OPTARG
@@ -148,7 +152,12 @@ function run {
 					 -e '/.*mta event=delivery.*/ !d' \
 					 -e 's#.*mta event=delivery.*to=<[^@]*@\([^>]*\).*#\1#'
 		      )
-		if [ -n "$domain" ] ; then
+
+		if [ -e "$COMMON" ] ; then
+			is_common=$(grep -l "$domain" /etc/mail/common_domains)
+		fi
+
+		if [[ -n "$domain" && -z "$is_common" ]] ; then
 			timestamp=$(date +'%s')
 			ips=$(/usr/local/bin/spf_fetch "$domain")
 			echo "$domain	 # $timestamp" >> "$FILE"
