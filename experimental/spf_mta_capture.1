@@ -61,7 +61,7 @@ Arguments to pass through to
 File with list of common domains to check against. Default:
 /etc/mail/common_domains
 .It Fl f
-File to log doamins to. Default: /etc/mail/mta_domains
+File to log domains to. Default: /etc/mail/mta_domains
 .It Fl h
 Help message.
 .It Fl r
@@ -77,8 +77,12 @@ Print the version.
 .El
 .Sh FILES
 .Bl -tag -width "file" -compact
+.It Pa common
+File with common domains to check against.
 .It Pa file
-Formatted with one domain per line. Comments begin with hash (#) and includes the Unix timestamp when it was added.
+Formatted with one domain per line. Comments begin with hash (#) and
+includes the Unix timestamp when it was added.
+.Pp
 .Em Note :
 The specified file must be read/writable by the
 .Xr syslogd 8
@@ -86,6 +90,7 @@ service account, typically
 .Em _syslogd .
 .It Pa file_ips
 SPF records (ip addresses) of the domains.
+.Pp
 .Em Note :
 The specified file must be read/writable by the
 .Xr syslogd 8
@@ -119,7 +124,10 @@ job with
 .Xr spf_update_pf :
 .Pp
 .Bd -literal
-	@daily		/usr/local/bin/spf_mta_capture -r && /usr/local/bin/spf_update_pf -f /etc/mail/mta_domains -t mta_white
+	@daily		/usr/local/bin/spf_mta_capture -r && \\
+			/usr/local/bin/spf_update_pf \\
+			    -f /etc/mail/mta_domains \\
+			    -t mta_white
 .Ed
 .Pp
 Sample output of /etc/mail/mta_domains:
@@ -127,6 +135,12 @@ Sample output of /etc/mail/mta_domains:
 .Bd -literal
 	example.net    # 1504230254
 	example.com    # 1504230256
+.Ed
+.Pp
+Sample entry in
+.Xr pf.conf 5 :
+.Bd -literal
+	permit nopass _syslogd as root cmd pfctl
 .Ed
 .Sh DIAGNOSTICS
 .Nm
