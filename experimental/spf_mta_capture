@@ -21,10 +21,13 @@ __progname=$(basename "$0")
 TRUE=0
 FALSE=1
 
+PREFIX=''
+PREFIX_DEF='common'
+
 COMMON='/etc/mail/common_domains'
-FILE='/etc/mail/mta_domains'
+FILE="/etc/mail/${PREFIX_DEF}_domains"
 SPF_FETCH_ARGS=''
-TABLE='mta_white'
+TABLE="${PREFIX_DEF}_white"
 
 DOAS=$(which doas)
 if [ -z "$DOAS" ] ; then
@@ -72,8 +75,8 @@ function usage {
 	usage="usage: $__progname"
 	length=$(expr ${#usage} + 1)
 
-	log_msg "$usage [-acfhtv] [-a spf_fetch_args] [-c common] [-f file] [-h]"
-	log_msg -p $length "[-t table] [-v]"
+	log_msg "$usage [-acfhptv] [-a spf_fetch_args] [-c common] [-f file] [-h]"
+	log_msg -p $length "[-p prefix] [-t table] [-v]"
 }
 
 while getopts :af:h:t:v: opt ; do
@@ -112,29 +115,12 @@ done
 shift $(( OPTIND - 1 ))
 domains=$@
 
-function run {
-	while read LINE ; do
-		domain=$(echo "$LINE" | \
-				 sed \
-					 -e '/.*mta event=delivery.*/ !d' \
-					 -e 's#.*mta event=delivery.*to=<[^@]*@\([^>]*\).*#\1#'
-		      )
-
-		if [ -e "$COMMON" ] ; then
-			is_common=$(grep -l "$domain" /etc/mail/common_domains)
-		fi
-
-		if [[ -n "$domain" && -z "$is_common" ]] ; then
-			timestamp=$(date +'%s')
-			ips=$(/usr/local/bin/spf_fetch "$domain")
-			echo "$domain	 # $timestamp" >> "$FILE"
-			for ip in $(echo $ips) ; do
-				$DOAS pfctl -t "$TABLE" -T add $ip
-				echo "$ip" >> "${FILE}_ips"
-			done
-		fi
-	done < "${1:-/dev/stdin}"
-}
+# override FILE and TABLE if PREFIX set
+if [ -n "$PREFIX" ] ; then
+	echo here
+	FILE="/etc/mail/${PREFIX}_domains"
+	TABLE="${PREFIX}_white"
+fi
 
 case $CMD in
 	run)

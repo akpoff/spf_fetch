@@ -21,13 +21,16 @@ __progname=$(basename "$0")
 TRUE=0
 FALSE=1
 
+PREFIX=''
+PREFIX_DEF='common'
+
 COMMENTS=$FALSE
-FILE='/etc/mail/common_domains'
+FILE="/etc/mail/${PREFIX_DEF}_domains"
 REMOVE=$FALSE
 # 36 days -- same as spamd(8)
 SECONDS=3110400
 SPF_FETCH_ARGS=''
-TABLE='common_white'
+TABLE="${PREFIX_DEF}_white"
 
 CMD=run
 VERSION=1.0
@@ -77,7 +80,7 @@ function remove {
 				    | tr -d ' ' | \
 				    egrep '^[0-9]+'
 			 )
-		# if there's a timestamp, compare it	     
+		# if there's a timestamp, compare it
 		if [ -n "$timestamp" ] ; then
 			if [ $timestamp -ge $cutoff ] ; then
 				echo "$LINE" >> "$TMPFILE"
@@ -130,11 +133,11 @@ function usage {
 	usage="usage: $__progname"
 	length=$(expr ${#usage} + 1)
 
-	log_msg "$usage [-afhrstv] [-a spf_fetch_args] [-f file] [-h] [-r]"
-	log_msg -p $length "[-s -seconds] [-t table] [-v]"
+	log_msg "$usage [-afhprstv] [-a spf_fetch_args] [-f file] [-h] [-p prefix]"
+	log_msg -p $length "[-r] [-s seconds] [-t table] [-v]"
 }
 
-while getopts :a:f:hrs:t:v opt ; do
+while getopts :a:f:hp:rs:t:v opt ; do
 	case $opt in
 		a)
 			SPF_FETCH_ARGS=$OPTARG
@@ -174,6 +177,12 @@ while getopts :a:f:hrs:t:v opt ; do
 	esac
 done
 shift $(( OPTIND - 1 ))
+
+# override FILE and TABLE if PREFIX set
+if [ -n "$PREFIX" ] ; then
+	FILE="/etc/mail/${PREFIX}_domains"
+	TABLE="${PREFIX}_white"
+fi
 
 case $CMD in
 	run)

@@ -24,10 +24,11 @@ table with ip addresses from
 .Sh SYNOPSIS
 .Nm spf_update_pf
 .Bk -words
-.Op Fl afhrstv
+.Op Fl afhprstv
 .Op Fl a Ar spf_fetch_args
 .Op Fl f Ar file
 .Op Fl h
+.Op Fl p Ar prefix
 .Op Fl r
 .Op Fl s Ar seconds
 .Op Fl t Ar table
@@ -38,13 +39,12 @@ table with ip addresses from
 calls
 .Xr spf_fetch 1
 with the specified file and updates a named
-.Xr spf 4
+.Xr pf 4
 table with the returned SPF records.
 .Pp
 Suitable for use with a daily
 .Xr cron 8
 job.
-.Pp
 .Pp
 The options are as follows:
 .Bl -tag -width Ds
@@ -52,26 +52,32 @@ The options are as follows:
 Arguments to pass through to
 .Xr spf_fetch 1 .
 .It Fl f
-File to use. Default: /etc/mail/common_domains
+File to use.
+Default: /etc/mail/common_domains
 .It Fl h
 Help message.
+.It Fl p
+Prefix to use for file and table names with default path.
+Default: common.
 .It Fl r
 Remove expired domains from the specified file by removing any entries
 whose timestamp is less than current time minus the seconds specified.
 .It Fl s
-Seconds for removal. Default: 3110400 (36 days)
+Seconds for removal.
+Default: 3110400 (36 days)
 .It Fl t
 .Xr pf 4
-table to load the addresses to. Default: common_white
+table to load the addresses to.
+Default: common_white.
 .It Fl v
 Print the version.
 .El
 .Sh FILES
 .Bl -tag -width "file" -compact
 .It Pa file
-Formatted with one domain per line. Comments begin with hash (#) and
-optionally includes the Unix timestamp when it was added for later
-removal with -r.
+Formatted with one domain per line.
+Comments begin with hash (#) and optionally includes the Unix
+timestamp when it was added for later removal with -r.
 .Pp
 .Lk https://github.com/mailcheck/mailcheck/wiki/List-of-Popular-Domains "List of Popular Domains"
 .Pp
@@ -83,7 +89,6 @@ File created in same directory as the input file to receive the SPF records from
 Daily
 .Xr cron 8
 job:
-.Pp
 .Bd -literal
 	@daily		/usr/local/bin/spf_update_pf
 .Ed
@@ -93,16 +98,26 @@ Daily
 job with
 .Xr spf_fetch 1
 filter:
-.Pp
 .Bd -literal
 	@daily		/usr/local/bin/spf_update_pf -a '-t filters/filter_sipcalc'
 .Ed
+.Pp
+Change the file and table prefixes:
+.Bd -literal
+	/usr/local/bin/spf_update_pf -p mta
+	# sets -f to /etc/mail/mta_domains
+	# sets pf(4) table name to mta_white
+.Ed
 .Sh DIAGNOSTICS
 .Nm
-utility always exits 0.
+returns 0 on success, or >0 on error:
+.Bd -literal
+	1: file not found,
+	2: table not found.
+.Ed
 .Sh SEE ALSO
+.Xr spf_fetch 1 ,
 .Xr pf 4
-.Xr spf_fetch 1
 .Sh AUTHORS
 .An -nosplit
 The

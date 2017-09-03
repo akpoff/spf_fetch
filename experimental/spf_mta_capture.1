@@ -1,4 +1,4 @@
-.\" Copyright (c) 2016 Aaron Poffenberger <akp@hypernote.com>
+.\" Copyright (c) 2017 Aaron Poffenberger <akp@hypernote.com>
 .\"
 .\" Permission to use, copy, modify, and distribute this software for any
 .\" purpose with or without fee is hereby granted, provided that the above
@@ -12,33 +12,32 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd $Mdocdate: Jul 10 2016 $
+.Dd $Mdocdate: Sep 03 2017 $
 .Dt SPF_MTA_CAPTURE 1
 .Os
 .Sh NAME
 .Nm spf_mta_capture
-.Nd is a utility for capturing domains for outbound mail transfers
-and adding them to a named
-.Xr pf 4
-table.
+.Nd capture outbound mail
 .Sh SYNOPSIS
 .Nm spf_mta_capture
-.Bk -words
 .Op Fl acfhptv
 .Op Fl a Ar spf_fetch_args
 .Op Fl c Ar common
 .Op Fl f Ar file
 .Op Fl h
+.Op Fl p Ar prefix
 .Op Fl t Ar table
 .Op Fl v
-.Ek
 .Sh DESCRIPTION
+The
 .Nm
-calls
+utility
 .Xr spf_fetch 1
 parses each line of text received from stdin looking for outbound mail
-transfers. It captures the domain of the recipient email. The domain
-is checked against the list of common domains and exlucded if found.
+transfers.
+It captures the domain of the recipient email.
+The domain is checked against the list of common domains and exlucded
+if found.
 If not found,
 .Nm
 calls
@@ -51,22 +50,26 @@ and logs the domain and time to the specified file.
 Suitable for use with
 .Xr syslogd 8 .
 .Pp
-.Pp
 The options are as follows:
 .Bl -tag -width Ds
 .It Fl a
 Arguments to pass through to
 .Xr spf_fetch 1 .
 .It Fl c
-File with list of common domains to check against. Default:
-/etc/mail/common_domains
+File with list of common domains to check against.
+Default: /etc/mail/common_domains
 .It Fl f
-File to log domains to. Default: /etc/mail/mta_domains
+File to log domains to.
+Default: /etc/mail/mta_domains
 .It Fl h
 Help message.
+.It Fl p
+Prefix to use for file and table names with default path.
+Default: common.
 .It Fl t
 .Xr pf 4
-table to load the addresses to. Default: mta_white
+table to load the addresses to.
+Default: mta_white
 .It Fl v
 Print the version.
 .El
@@ -75,8 +78,9 @@ Print the version.
 .It Pa common
 File with common domains to check against.
 .It Pa file
-Formatted with one domain per line. Comments begin with hash (#) and
-includes the Unix timestamp when it was added.
+Formatted with one domain per line.
+Comments begin with hash (#) and includes the Unix timestamp when it
+was added.
 .Pp
 .Em Note :
 The specified file must be read/writable by the
@@ -92,23 +96,9 @@ The specified file must be read/writable by the
 service account, typically
 .Em _syslogd .
 .El
-.Sh SECURITY CONSIDERATIONS
-.Nm
-requires elevated privileges to add address to the named
-.Xr pf 4
-table. The
-.Em _syslogd
-user should be granted permission in
-.Xr doas.conf 5
-or
-.Xr sudo.conf 5
-to call pfctl
-.Em without
-password.
 .Sh EXAMPLES
 .Xr syslog.conf 5
 configuration:
-.Pp
 .Bd -literal
 	mail.info	|/usr/local/bin/spf_mta_capture
 .Ed
@@ -116,17 +106,14 @@ configuration:
 Daily
 .Xr cron 8
 job with
-.Xr spf_update_pf :
-.Pp
+.Xr spf_update_pf 1 :
 .Bd -literal
-	@daily		/usr/local/bin/spf_mta_capture -r && \\
-			/usr/local/bin/spf_update_pf \\
+	@daily		/usr/local/bin/spf_update_pf -r \\
 			    -f /etc/mail/mta_domains \\
 			    -t mta_white
 .Ed
 .Pp
 Sample output of /etc/mail/mta_domains:
-.Pp
 .Bd -literal
 	example.net    # 1504230254
 	example.com    # 1504230256
@@ -141,11 +128,11 @@ Sample entry in
 .Nm
 utility always exits 0.
 .Sh SEE ALSO
-.Xr pf 4
-.Xr spf_fetch 1
-.Xr spf_update_pf 1
+.Xr spf_fetch 1 ,
+.Xr spf_update_pf 1 ,
+.Xr pf 4 ,
+.Xr syslog.conf 5 ,
 .Xr syslogd 8
-.Xr syslog.conf 5
 .Sh AUTHORS
 .An -nosplit
 The
@@ -155,3 +142,17 @@ utility was written by
 .Sh BUGS
 .Nm
 should return error codes for conditions like failed look-ups.
+.Sh SECURITY CONSIDERATIONS
+.Nm
+requires elevated privileges to add address to the named
+.Xr pf 4
+table.
+The
+.Em _syslogd
+user should be granted permission in
+.Xr doas.conf 5
+or
+.Xr sudo.conf 5
+to call pfctl
+.Em without
+password.
