@@ -19,9 +19,9 @@ the mailer numerous times until the email is redelivered by one of the
 already greylisted ip addresses.
 
 One naive technique for pre-greylisting large mailers like Google is
-to add their __MX__ records to the approved senders list. Unfortunately,
-large companies rarely use the send servers and ip addresses for both
-sending and receiving.
+to add their __MX__ records to the approved senders list.
+Unfortunately, large companies rarely use the same servers and ip
+addresses for both sending and receiving.
 
 The `spf_fetch` project uses a simple technique for pre-determining
 which ip addresses and blocks of addresses to add to the approved
