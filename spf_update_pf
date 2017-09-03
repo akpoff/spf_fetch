@@ -23,6 +23,9 @@ FALSE=1
 
 COMMENTS=$FALSE
 FILE='/etc/mail/common_domains'
+REMOVE=$FALSE
+# 36 days -- same as spamd(8)
+SECONDS=3110400
 SPF_FETCH_ARGS=''
 TABLE='common_white'
 
@@ -54,28 +57,63 @@ function log_msg {
 	echo "${padding}${msg}"
 }
 
+TMPFILE=`mktemp -q /tmp/$__progname.XXXXXXXXXX` ||
+	(log_msg "Unable to create $__progname tmp file ... aborting" ; \
+	 exit $err_exit)
+
+TMPCOPY=`mktemp -q /tmp/$__progname.XXXXXXXXXX` ||
+	(log_msg "Unable to create $__progname tmp file ... aborting" ; \
+	 exit $err_exit)
+
+trap "rm -f '$TMPFILE' '$TMPCOPY'" EXIT
+trap "log_msg $__progname aborted by user;exit 1" INT
+
+function remove {
+	cp "$FILE" "$TMPCOPY"
+	cutoff=$(expr `date +'%s'` - $SECONDS)
+	while read LINE ; do
+		timestamp=$(echo "$LINE" \
+				    | cut -d '#' -f 2 \
+				    | tr -d ' ' | \
+				    egrep '^[0-9]+'
+			 )
+		# if there's a timestamp, compare it	     
+		if [ -n "$timestamp" ] ; then
+			if [ $timestamp -ge $cutoff ] ; then
+				echo "$LINE" >> "$TMPFILE"
+			fi
+		else
+			# otherwise leave it alone
+			echo "$LINE" >> "$TMPFILE"
+		fi
+	done < "$TMPCOPY"
+
+	cat "$TMPFILE" > "$FILE"
+
+	rm -f "$TMPCOPY" "$TMPFILE"
+}
+
 function run {
 	has_table=$(pfctl -s Tables | grep "$TABLE")
 
-	if [[ -n "$has_table" && -e "$FILE" ]] ; then
-		output="${FILE}_ips"
-
-		spf_fetch -c -f "$FILE" \
-		     "$SPF_FETCH_ARGS" > "${output}"
-
-		pfctl -t "$TABLE" -T replace -f "${output}"
-	elif [ -z "$has_table" ] ; then
-		echo Table not found: ${table}
-
+	if [ -z "$has_table" ] ; then
+		echo Table not found: $TABLE
 		exit 2
 	elif [ ! -e "$FILE" ] ; then
 		echo File not found: $FILE
-
 		exit 1
 	else
-		echo Unknown error
+		# remove entries older than SECONDS if REMOVE specified
+		if [ $REMOVE -eq $TRUE ] ; then
+			remove
+		fi
 
-		exit 1
+		OUTPUT="${FILE}_ips"
+
+		spf_fetch -c -f "$FILE" \
+		     "$SPF_FETCH_ARGS" > "${OUTPUT}"
+
+		pfctl -t "$TABLE" -T replace -f "${OUTPUT}"
 	fi
 }
 
@@ -90,12 +128,13 @@ function usage {
 	fi
 
 	usage="usage: $__progname"
-	pad=${#usage}
+	length=$(expr ${#usage} + 1)
 
-	log_msg "$usage [-afhtv] [-a spf_fetch_args] [-f file] [-h] [-t table] [-v]"
+	log_msg "$usage [-afhrstv] [-a spf_fetch_args] [-f file] [-h] [-r]"
+	log_msg -p $length "[-s -seconds] [-t table] [-v]"
 }
 
-while getopts :a:f:ht:v opt ; do
+while getopts :a:f:hrs:t:v opt ; do
 	case $opt in
 		a)
 			SPF_FETCH_ARGS=$OPTARG
@@ -105,6 +144,15 @@ while getopts :a:f:ht:v opt ; do
 			;;
 		h)
 			CMD="usage"
+			;;
+		p)
+			PREFIX=$OPTARG
+			;;
+		r)
+			REMOVE=$TRUE
+			;;
+		s)
+			SECONDS=$OPTARG
 			;;
 		t)
 			TABLE=$OPTARG

@@ -23,8 +23,6 @@ FALSE=1
 
 COMMON='/etc/mail/common_domains'
 FILE='/etc/mail/mta_domains'
-# 36 days
-SECONDS=3110400
 SPF_FETCH_ARGS=''
 TABLE='mta_white'
 
@@ -61,17 +59,6 @@ function log_msg {
 	echo "${padding}${msg}"
 }
 
-TMPFILE=`mktemp -q /tmp/$__progname.XXXXXXXXXX` ||
-	(log_msg "Unable to create $__progname tmp file ... aborting" ; \
-	 exit $err_exit)
-
-TMPCOPY=`mktemp -q /tmp/$__progname.XXXXXXXXXX` ||
-	(log_msg "Unable to create $__progname tmp file ... aborting" ; \
-	 exit $err_exit)
-
-trap "rm -f '$TMPFILE' '$TMPCOPY'" EXIT
-trap "log_msg $__progname aborted by user;exit 1" INT
-
 function version {
 	log_msg "$__progname $VERSION"
 }
@@ -85,11 +72,11 @@ function usage {
 	usage="usage: $__progname"
 	length=$(expr ${#usage} + 1)
 
-	log_msg "$usage [-acfhrstv] [-a spf_fetch_args] [-c common] [-f file]"
-	log_msg -p $length "[-h] [-t table] [-v]"
+	log_msg "$usage [-acfhtv] [-a spf_fetch_args] [-c common] [-f file] [-h]"
+	log_msg -p $length "[-t table] [-v]"
 }
 
-while getopts :af:hrs:t:v: opt ; do
+while getopts :af:h:t:v: opt ; do
 	case $opt in
 		a)
 			SPF_FETCH_ARGS=$OPTARG
@@ -102,12 +89,6 @@ while getopts :af:hrs:t:v: opt ; do
 			;;
 		h)
 			CMD="usage"
-			;;
-		r)
-			CMD="remove"
-			;;
-		s)
-			SECONDS=$OPTARG
 			;;
 		t)
 			TABLE=$OPTARG
@@ -130,21 +111,6 @@ while getopts :af:hrs:t:v: opt ; do
 done
 shift $(( OPTIND - 1 ))
 domains=$@
-
-function remove {
-	cp "$FILE" "$TMPCOPY"
-	cutoff=$(expr `date +'%s'` - $SECONDS)
-	while read LINE ; do
-		timestamp=$(echo "$LINE" | cut -d '#' -f 2 | tr -d ' ')
-		if [ $timestamp -ge $cutoff ] ; then
-			echo "$LINE" > "$TMPFILE"
-		fi
-	done < "$TMPCOPY"
-
-	cat "$TMPFILE" > "$FILE"
-
-	rm -f "$TMPCOPY" "$TMPFILE"
-}
 
 function run {
 	while read LINE ; do
@@ -173,9 +139,6 @@ function run {
 case $CMD in
 	run)
 		run
-		;;
-	remove)
-		remove
 		;;
 	usage)
 		usage

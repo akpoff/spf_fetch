@@ -24,10 +24,12 @@ table with ip addresses from
 .Sh SYNOPSIS
 .Nm spf_update_pf
 .Bk -words
-.Op Fl afhtv
+.Op Fl afhrstv
 .Op Fl a Ar spf_fetch_args
 .Op Fl f Ar file
 .Op Fl h
+.Op Fl r
+.Op Fl s Ar seconds
 .Op Fl t Ar table
 .Op Fl v
 .Ek
@@ -53,6 +55,11 @@ Arguments to pass through to
 File to use. Default: /etc/mail/common_domains
 .It Fl h
 Help message.
+.It Fl r
+Remove expired domains from the specified file by removing any entries
+whose timestamp is less than current time minus the seconds specified.
+.It Fl s
+Seconds for removal. Default: 3110400 (36 days)
 .It Fl t
 .Xr pf 4
 table to load the addresses to. Default: common_white
@@ -62,7 +69,9 @@ Print the version.
 .Sh FILES
 .Bl -tag -width "file" -compact
 .It Pa file
-Formatted with one domain per line. Comments begin with hash (#).
+Formatted with one domain per line. Comments begin with hash (#) and
+optionally includes the Unix timestamp when it was added for later
+removal with -r.
 .Pp
 .Lk https://github.com/mailcheck/mailcheck/wiki/List-of-Popular-Domains "List of Popular Domains"
 .Pp

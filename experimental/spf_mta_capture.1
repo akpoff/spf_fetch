@@ -24,7 +24,7 @@ table.
 .Sh SYNOPSIS
 .Nm spf_mta_capture
 .Bk -words
-.Op Fl acfhrstv
+.Op Fl acfhptv
 .Op Fl a Ar spf_fetch_args
 .Op Fl c Ar common
 .Op Fl f Ar file
@@ -64,11 +64,6 @@ File with list of common domains to check against. Default:
 File to log domains to. Default: /etc/mail/mta_domains
 .It Fl h
 Help message.
-.It Fl r
-Remove expired domains from the specified file by removing any entries
-whose timestamp is less than current time minus the seconds specified.
-.It Fl s
-Seconds for removal. Default: 3110400 (36 days)
 .It Fl t
 .Xr pf 4
 table to load the addresses to. Default: mta_white
