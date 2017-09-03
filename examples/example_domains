@@ -2,3 +2,6 @@ gmail.com
 gmx.com
 googlemail.com
 google.com
+
+# The following domain will be removed by spf_update_pf -r when it's timestamp exceeds now - 36 days
+example.com    # 1504471503
