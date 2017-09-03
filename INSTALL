@@ -1,0 +1,40 @@
+Installation Instructions
+=========================
+
+Overview
+--------
+
+### spf_fetch
+
+`spf_fetch` should run from any location on any system with `dig(1)`,
+and a `POSIX`-compliant shell.
+
+### spf_update_pf
+
+`spf_update_pf` should run from any location on any system with
+`spf_fetch(1)`, `pf(4)` and `pfctl(8)` with compatible tables and
+syntax for adding entries to tables, and a `POSIX`-compliant shell.
+
+### spf_mta_capture
+
+`spf_mta_capture` should run from any location on any system with
+`spf_fetch(1)`, `spf_update_pf(1), `smptd(8)`, and a `POSIX`-compliant
+shell.
+
+
+Installation
+------------
+
+The included `Makefile` will install to `PREFIX` which defaults to
+`/usr/local`. The utilities will install to `$PREFIX/bin` and the man
+pages to `$PREFIX/man/man1`.
+
+Type `make` or `make install` to install.
+
+Removal
+-------
+
+The include `Makefile` will remove the utilities and man pages from the
+same locations as above.
+
+Type `make remove`.
