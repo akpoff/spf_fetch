@@ -155,11 +155,10 @@ function usage {
 	usage="usage: $__progname"
 	length=$(expr ${#usage} + 1)
 
-	log_msg "$usage [-4] [-6] [-c] [-d dns server] [-f file]"
+	log_msg "$usage [-acdhlqrsv] [-a] [-c configuration] [-d] \
+	[-h] [-l location] [-q]"
 
-	log_msg -p $length "[-h] [-m] [-t filter command] [-v]"
-
-	log_msg -p $length "[domain] [domain] ..."
+	log_msg -p $length "[-r] [-s] [-v] [interface ...]"
 }
 
 while getopts :46cd:f:hmt:v: opt ; do
