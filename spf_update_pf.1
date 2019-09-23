@@ -90,7 +90,7 @@ Daily
 .Xr cron 8
 job:
 .Bd -literal
-	@daily		/usr/local/bin/spf_update_pf
+	@daily		/usr/local/sbin/spf_update_pf
 .Ed
 .Pp
 Daily
@@ -99,12 +99,12 @@ job with
 .Xr spf_fetch 1
 filter:
 .Bd -literal
-	@daily		/usr/local/bin/spf_update_pf -a '-t filters/filter_sipcalc'
+	@daily		/usr/local/sbin/spf_update_pf -a '-t filters/filter_sipcalc'
 .Ed
 .Pp
 Change the file and table prefixes:
 .Bd -literal
-	/usr/local/bin/spf_update_pf -p mta
+	/usr/local/sbin/spf_update_pf -p mta
 	# sets -f to /etc/mail/mta_domains
 	# sets pf(4) table name to mta_white
 .Ed
